@@ -1,50 +1,65 @@
-import { isRef, vShow, withDirectives , createVNode, isVNode  } from 'vue'
+import { vShow, withDirectives, vModelText, vModelSelect, vModelRadio, vModelCheckbox, createVNode, isVNode } from 'vue'
 
-const getVal = (val:any) => isRef(val) ? val.value : val
+// const setVal = (wrap:any,setter?:Function) => isRef(wrap) ? (val:any) => (wrap.value = val) : setter;
 
-const setVal = (val:any, nv:any) => isRef(val) ? (val.value = nv) : (val = nv)
-
-export const jsx = (tag:string, props:any, ...children:any[]) => {
-  let directives:any[] = []
-  let slots:any = {}
+export const jsx = (tag: string, props: any, ...children: any[]) => {
+  let directives: any[] = []
+  let slots: any = {}
   if (props) {
     let keys = Object.keys(props)
     for (let prop of keys) {
       let val = props[prop]
 
       if (prop == 'v-model') {
-        if (Array.isArray(val)) {
-          let [newval, modelValue] = val
-          props[modelValue] = getVal(newval)
-          props['onUpdate:' + modelValue] = ($event:any) => setVal(newval, $event)
-        } else {
-          if (['select', 'input', 'textarea'].includes(tag)) {
-            props['value'] = getVal(val)
-            props['onInput'] = ($event:any) => setVal(val, $event.target.value)
-          } else if (['radio', 'checkbox'].includes(tag)) {
-
-          } else {
-            props['modelValue'] = getVal(val)
-            props['onUpdate:modelValue'] = ($event:any) => setVal(val, $event)
-          }
-
+        let [setter, newval, ...rest] = val
+        let modelValue: string = 'modelValue', modifier: string[] = rest[1] || []
+        if (typeof rest[0] == 'string') {
+          modelValue = rest[0]
+        } else if (Array.isArray(rest[0])) {
+          modifier = rest[0]
         }
+        let modifierObj: any = modifier.reduce((t:any, c:string) => (t[c] = true, t), {})
+        let directive
+        if (['input', 'textarea'].includes(tag)) {
+          directive = vModelText
+        }
+        else if (tag == 'select') {
+          directive = vModelSelect
+        }
+        else if (tag == 'radio') {
+          directive = vModelRadio
+        }
+        else if (tag == 'checkbox') {
+          directive = vModelCheckbox
+        }
+        else {
+          if (modifier.length) {
+            props[modelValue + 'Modifiers'] = modifierObj
+          }
+        }
+        if(directive){
+          directives.push([directive, newval, '', modifierObj]);
+        }else{
+          props[modelValue] = newval;
+        }
+        props['onUpdate:'+modelValue] = setter;
+        
         Reflect.deleteProperty(props, prop)
       }
       else if (prop == 'v-html') {
-        props.innerHTML = getVal(val)
+        props.innerHTML = val
         Reflect.deleteProperty(props, prop)
       }
       else if (prop == 'v-text') {
-        props.textContent = getVal(val)
+        props.textContent = val
         Reflect.deleteProperty(props, prop)
       }
       else if (prop == 'v-show') {
-        directives.push([vShow, getVal(val)])
+        directives.push([vShow, val])
         Reflect.deleteProperty(props, prop)
       }
       else if (prop == 'v-slots') {
-        for(let i in val){
+        for (let i in val) {
           slots[i] = val[i]
         }
         Reflect.deleteProperty(props, prop);
@@ -52,17 +67,17 @@ export const jsx = (tag:string, props:any, ...children:any[]) => {
     }
   }
 
-  if(children.length > 0){
+  if (children.length > 0) {
     let last = children[0]
     // children is slots
-    if( typeof last == 'object' && !isVNode(last) ){
-        for(let i in last){
-            slots[i] = last[i]
-        }
-    }else{
-        slots.default = () => children
+    if (Object.prototype.toString.call(last) == '[object Object]' && !isVNode(last)) {
+      for (let i in last) {
+        slots[i] = last[i]
+      }
+    } else {
+      slots.default = () => children
     }
-  
+
   }
 
   let vnode = createVNode(tag, props, Object.keys(slots).length == 0 ? null : slots)

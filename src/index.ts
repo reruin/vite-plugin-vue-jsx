@@ -1,7 +1,7 @@
-import { vueJsxTransform } from './transform'
+import { vueJsxTransform , vueJsxTransformConfig } from './transform'
 
-export default () => {
+export default (transformConfig:vueJsxTransformConfig = {}) => {
   return {
-    transforms: [vueJsxTransform]
+    transforms: [vueJsxTransform()]
   }
 }

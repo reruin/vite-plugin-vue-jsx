@@ -1,6 +1,11 @@
 import { Transform } from 'vite'
 
-export const vueJsxTransform: Transform = {
+export type vueJsxTransformConfig = {
+  // automatically unwrap ref
+  autoUnref?:boolean
+}
+
+export const vueJsxTransform = ():Transform => ({
   test({ path, isBuild }) {
     if (!/\.(t|j)sx?$/.test(path)) {
       return false
@@ -15,6 +20,7 @@ export const vueJsxTransform: Transform = {
     
     if (code.includes("import { jsx } from")) {
       code = code.replace(/import \{ jsx \} from[^\r\n]+/, "import { jsx } from 'vite-plugin-vue-jsx/dist/jsx'")
+      code = code.replace(/(?<=v-model":\s)(\[?)([^,\r\n\s\]}]+)/g,($0,$1,$2) => $1 ? `${$1}v => ${$2} = v,${$2}` : `[v => ${$2} = v,${$2}]`)
     }
     return {
       code: `${code}`,
@@ -22,4 +28,4 @@ export const vueJsxTransform: Transform = {
     }
     
   }
-}
+})

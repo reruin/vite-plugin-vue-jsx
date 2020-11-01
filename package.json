@@ -1,6 +1,6 @@
 {
   "name": "vite-plugin-vue-jsx",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": "Support Vue directives in JSX of vite.",
   "main": "dist/index.js",
   "files": [
